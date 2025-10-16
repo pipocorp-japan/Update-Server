@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>更新サーバー</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input[type="number"] {
+            padding: 10px;
+            width: 100%;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #message {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 20px;
+        }
+        #NewURL {
+            display: block;
+            margin-top: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: normal;
+        }
+        .update-available {
+            color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .current-version {
+            color: #28a745;
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>更新サーバー確認</h1>
+        <label for="versionbox">ご利用のバージョンを入力してください:</label>
+        <input type="number" id="versionbox" placeholder="例: 1, 2, 3">
+        
+        <p id="message">情報を読み込み中...</p>
+        <p><a id="NewURL"></a></p>
+    </div>
+
+    <script>
+        // 定数
+        const JSON_FILE_PATH = 'update_info.json'; // JSONファイルのパス
+
+        // DOM要素の取得
+        const versionInput = document.getElementById("versionbox");
+        const messagebox = document.getElementById("message");
+        const newURL = document.getElementById("NewURL");
+
+        // 最新バージョンとURLを格納する変数
+        let latestVersion = 0;
+        let updateURL = '';
+
+        /**
+         * JSONファイルから最新バージョン情報を取得する
+         */
+        async function fetchUpdateInfo() {
+            try {
+                const response = await fetch(JSON_FILE_PATH);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                latestVersion = data.version;
+                updateURL = data.URL;
+
+                // 情報を読み込んだら、バージョンチェックを実行
+                verConfirm(); 
+            } catch (error) {
+                console.error('更新情報の取得に失敗しました:', error);
+                messagebox.innerHTML = '⚠️ 更新情報の取得に失敗しました。';
+                messagebox.classList.add('update-available');
+            }
+        }
+
+        /**
+         * 入力されたバージョンと最新バージョンを比較する
+         */
+        function verConfirm() {
+            const currentVersion = Number(versionInput.value);
+            
+            // 最新バージョン情報がまだ読み込まれていない場合はスキップ
+            if (latestVersion === 0) {
+                messagebox.innerHTML = "情報を読み込み中...";
+                return;
+            }
+
+            // クラスを一旦リセット
+            messagebox.className = '';
+            newURL.innerHTML = '';
+            newURL.href = '';
+
+            if (currentVersion === 0 || isNaN(currentVersion)) {
+                messagebox.innerHTML = "バージョンを入力してください...";
+                return;
+            }
+
+            if (currentVersion < latestVersion) {
+                // 更新が必要な場合
+                messagebox.innerHTML = `⚠️ バージョン ${latestVersion} がご利用可能です。`;
+                messagebox.classList.add('update-available');
+                newURL.innerHTML = 'こちらから最新バージョンをダウンロード';
+                newURL.href = updateURL;
+            } else {
+                // 最新バージョン、またはそれ以上の場合
+                messagebox.innerHTML = `✅ 最新バージョン (${latestVersion}) をご利用中です。`;
+                messagebox.classList.add('current-version');
+            }
+        }
+
+        // ページロード時にJSONファイルの読み込みを開始
+        fetchUpdateInfo();
+
+        // イベントリスナーの設定
+        versionInput.addEventListener('change', verConfirm);
+        versionInput.addEventListener('keyup', verConfirm);
+
+    </script>
+</body>
+</html>
