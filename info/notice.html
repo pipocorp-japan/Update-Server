@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お知らせリスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .notification-item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            position: relative;
+            background-color: #f9f9f9;
+        }
+
+        .notification-item.unread {
+            border-left: 5px solid #ff5722; /* 未読アイテムの強調 */
+            background-color: #fff3e0;
+        }
+
+        .notification-item h3 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 1.2em;
+        }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff5722;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .read-status {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #e0e0e0;
+        }
+        
+        .read-status:hover {
+            background-color: #ccc;
+        }
+
+        .notification-item.read .read-status {
+            background-color: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .notification-item.read .read-status::after {
+            content: " (既読)";
+        }
+        
+        .notification-item.unread .read-status::after {
+            content: " (未読にする)";
+        }
+
+        #notifications-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #unread-count {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #ff5722;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>お知らせ一覧</h1>
+    
+    <div id="unread-count"></div>
+    <div id="notifications-container">
+        <!-- お知らせはここにJavaScriptで追加されます -->
+    </div>
+
+    <script>
+        const DATA_FILE = 'data.json';
+        const STORAGE_KEY = 'readNotifications';
+
+        /**
+         * localStorageから既読ステータスを読み込む
+         * @returns {Set<string>} 既読IDのSetオブジェクト
+         */
+        function getReadStatus() {
+            // localStorageはキーと値を文字列として保存する
+            const savedData = localStorage.getItem(STORAGE_KEY); 
+            // JSON文字列をパースし、存在しない場合は空の配列とする
+            const readArray = savedData ? JSON.parse(savedData) : [];
+            return new Set(readArray);
+        }
+
+        /**
+         * 既読ステータスをlocalStorageに保存する
+         * @param {Set<string>} readSet 既読IDのSetオブジェクト
+         */
+        function saveReadStatus(readSet) {
+            // Setを配列に変換し、JSON文字列に変換してから保存する
+            const readArray = Array.from(readSet);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(readArray));
+        }
+
+        /**
+         * お知らせリストをHTMLにレンダリングする
+         * @param {Array<Object>} notifications お知らせオブジェクトの配列
+         */
+        function renderNotifications(notifications) {
+            const container = document.getElementById('notifications-container');
+            const unreadCountDisplay = document.getElementById('unread-count');
+            const readSet = getReadStatus();
+            let unreadCount = 0;
+            container.innerHTML = ''; // コンテンツをクリア
+
+            notifications.forEach(item => {
+                const isRead = readSet.has(item.id);
+                if (!isRead) {
+                    unreadCount++;
+                }
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'notification-item ' + (isRead ? 'read' : 'unread');
+                itemDiv.dataset.id = item.id; // データIDを保存
+
+                itemDiv.innerHTML = `
+                    <h3>${item.title}</h3>
+                    <p><strong>日付:</strong> ${item.date}</p>
+                    <p>${item.content}</p>
+                    ${!isRead ? '<span class="badge">未読</span>' : ''}
+                    <button class="read-status" data-action="${isRead ? 'unread' : 'read'}">
+                        ${isRead ? '既読を取り消す' : '読んだことにする'}
+                    </button>
+                `;
+
+                // 既読/未読切り替えボタンのイベントリスナー
+                itemDiv.querySelector('.read-status').addEventListener('click', (event) => {
+                    toggleReadStatus(item.id, itemDiv, event.target);
+                });
+                
+                // お知らせ全体をクリックした場合も既読にする
+                // itemDiv.addEventListener('click', () => {
+                //     if (!isRead) { // 未読の場合のみ処理
+                //         toggleReadStatus(item.id, itemDiv, itemDiv.querySelector('.read-status'));
+                //     }
+                // });
+
+                container.appendChild(itemDiv);
+            });
+
+            unreadCountDisplay.textContent = `未読の件数: ${unreadCount} 件`;
+        }
+
+        /**
+         * 既読ステータスを切り替える
+         * @param {string} id お知らせID
+         * @param {HTMLElement} itemDiv お知らせのDOM要素
+         * @param {HTMLElement} buttonElement 状態を切り替えるボタンのDOM要素
+         */
+        function toggleReadStatus(id, itemDiv, buttonElement) {
+            const readSet = getReadStatus();
+            const isCurrentlyRead = readSet.has(id);
+            const unreadCountDisplay = document.getElementById('unread-count');
+            let currentUnreadCount = parseInt(unreadCountDisplay.textContent.match(/\d+/)[0]);
+            
+            if (isCurrentlyRead) {
+                // 既読から未読へ
+                readSet.delete(id);
+                itemDiv.classList.remove('read');
+                itemDiv.classList.add('unread');
+                itemDiv.querySelector('.badge')?.remove(); // 既存のバッジを削除（通常は既読になくて削除対象はないが念のため）
+                
+                // 未読バッジを再追加
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+                badge.textContent = '未読';
+                itemDiv.insertBefore(badge, itemDiv.firstChild); 
+
+                buttonElement.textContent = '読んだことにする';
+                buttonElement.dataset.action = 'read';
+
+                currentUnreadCount++; // 未読数を増やす
+            } else {
+                // 未読から既読へ
+                readSet.add(id);
+                itemDiv.classList.remove('unread');
+                itemDiv.classList.add('read');
+                itemDiv.querySelector('.badge')?.remove(); // バッジを削除
+
+                buttonElement.textContent = '既読を取り消す';
+                buttonElement.dataset.action = 'unread';
+
+                currentUnreadCount--; // 未読数を減らす
+            }
+            
+            saveReadStatus(readSet); // localStorageに保存
+            unreadCountDisplay.textContent = `未読の件数: ${currentUnreadCount} 件`;
+        }
+
+        /**
+         * data.jsonを読み込み、お知らせを表示する
+         */
+        async function loadNotifications() {
+            try {
+                // Fetch APIを使用してJSONファイルを読み込む
+                const response = await fetch(DATA_FILE); 
+                
+                // HTTPエラーのチェック
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const notifications = await response.json();
+                renderNotifications(notifications);
+
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+                document.getElementById('notifications-container').innerHTML = '<p style="color: red;">お知らせの読み込みに失敗しました。`data.json`が正しく配置されているか、ライブサーバーで開いているか確認してください。</p>';
+            }
+        }
+
+        // ページロード時にお知らせを読み込む
+        loadNotifications();
+    </script>
+</body>
+</html>
