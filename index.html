@@ -2,67 +2,125 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>更新サーバー</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新サーバーチェッカー</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 50px;
-            background-color: #f4f4f9;
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 30px 10px;
+            background-color: #f0f4f8;
             color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
         }
         .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
+            /* 💡 画面全体に対応するために幅を広く調整 (モバイルでは90%, デスクトップでは最大800px) */
+            width: 90%; 
+            max-width: 800px;
+            padding: 30px;
             background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
-        input[type="number"] {
-            padding: 10px;
-            width: 100%;
-            margin-top: 5px;
+        h1 {
+            font-size: 1.8rem;
+            color: #1e3a8a;
             margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #475569;
+        }
+        input[type="text"] {
+            padding: 12px 15px;
+            width: 100%;
+            margin-bottom: 25px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
             box-sizing: border-box;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        input[type="text"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            outline: none;
         }
         #message {
             font-weight: bold;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 15px;
+            border-radius: 8px;
             min-height: 20px;
+            margin-bottom: 15px;
             transition: all 0.3s ease;
+            text-align: center;
+            line-height: 1.4;
         }
-        #NewURL {
-            display: block;
-            margin-top: 15px;
-            color: #007bff;
-            text-decoration: none;
-            font-weight: normal;
+        #latestVersionDisplay {
+            font-weight: 700;
+            color: #3b82f6;
         }
 
+        /* 💡 修正後の更新あり（情報）スタイル: 青緑系 */
         .update-available {
-            color: #dc3545;
-            background-color: #f8d7da;
+            color: #047857; /* Dark Teal */
+            background-color: #d1fae5; /* Light Mint */
         }
 
+        /* ✅ 最新バージョンのスタイル: 緑系 */
         .current-version {
-            color: #28a745;
-            background-color: #d4edda;
+            color: #065f46;
+            background-color: #dcfce7;
         }
 
+        /* 💡 追加: エラー時の入力枠 */
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+        
+        /* 💡 追加: ダウンロードボタンのスタイル */
+        .download-button {
+            display: inline-block;
+            padding: 12px 25px;
+            margin-top: 20px;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .download-button:hover {
+            background-color: #2563eb;
+        }
+
+        .download-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        
         /* ✨ シャインアニメーション */
         .loading-text {
             position: relative;
             display: inline-block;
-            color: #999;
-            background-color: #e0e0e0;
+            color: #94a3b8;
+            background-color: #e2e8f0;
             border-radius: 4px;
             overflow: hidden;
-            padding: 10px 12px;
+            padding: 15px;
         }
-
         .loading-text::after {
             content: "";
             position: absolute;
@@ -70,10 +128,9 @@
             left: -100%;
             height: 100%;
             width: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
             animation: shimmer 1.5s infinite;
         }
-
         @keyframes shimmer {
             0% { left: -100%; }
             100% { left: 100%; }
@@ -83,86 +140,173 @@
         .fade {
             animation: fadeIn 0.4s ease-in-out;
         }
-
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        
+        /* 💡 成功時のポジティブなエフェクト */
+        @keyframes pulse-success {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(6, 95, 70, 0.4); }
+            50% { transform: scale(1.01); box-shadow: 0 0 0 8px rgba(6, 95, 70, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(6, 95, 70, 0); }
+        }
+
+        .current-version.success-effect {
+            animation: pulse-success 0.8s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Update Server</h1>
-        <label for="versionbox">ご利用のバージョンを入力してください:</label>
-        <input type="number" id="versionbox" placeholder="例: 7.1">
+        <h1>アップデートチェッカー</h1>
+        <p>最新のサーバーバージョン: <span id="latestVersionDisplay">---</span></p>
+        
+        <label for="versionbox">ご利用のバージョンを入力してください (例: 8.1)</label>
+        <input type="text" id="versionbox" placeholder="例: 7.1, 8.0, 8.1"> 
 
-        <p><span id="message" class="loading-text">読み込み中...</span></p>
+        <p><span id="message" class="loading-text">情報を読み込み中...</span></p>
         <p><a id="NewURL"></a></p>
     </div>
 
     <script>
-        const JSON_FILE_PATH = 'update_info.json';
+        // LocalStorageのキーを設定
+        const LAST_VERSION_KEY = 'last_checked_version';
+        const JSON_FILE_PATH = 'update_info.json'; // 💡 実際のJSONファイルパス
 
         const versionInput = document.getElementById("versionbox");
         const messagebox = document.getElementById("message");
         const newURL = document.getElementById("NewURL");
+        const latestVersionDisplay = document.getElementById("latestVersionDisplay");
 
         let latestVersion = 0;
         let updateURL = '';
+        
+        /**
+         * バージョン番号をセグメントごとに比較するヘルパー関数
+         */
+        function compareVersions(v1, v2) {
+            const s1 = String(v1).split('.').map(Number);
+            const s2 = String(v2).split('.').map(Number);
+            const maxLength = Math.max(s1.length, s2.length);
+
+            for (let i = 0; i < maxLength; i++) {
+                const num1 = s1[i] === undefined ? 0 : s1[i];
+                const num2 = s2[i] === undefined ? 0 : s2[i];
+
+                if (num1 < num2) return -1;
+                if (num1 > num2) return 1;
+            }
+            return 0;
+        }
+        
+        /**
+         * 最後にチェックしたバージョンを LocalStorage に保存する
+         */
+        function saveVersion(version) {
+            if (version) {
+                localStorage.setItem(LAST_VERSION_KEY, version);
+            }
+        }
 
         async function fetchUpdateInfo() {
             try {
+                // 💡 修正: JSONファイルへのfetchを有効化
                 const response = await fetch(JSON_FILE_PATH);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
 
                 latestVersion = data.version;
                 updateURL = data.URL;
+                
+                latestVersionDisplay.textContent = latestVersion;
 
-                // 読み込み終了 → クラス削除
+                // 読み込み終了 → ローディングクラス削除
                 messagebox.className = '';
-                verConfirm(); 
+                
+                // LocalStorageから値を取得し、あれば自動判定
+                const lastVersion = localStorage.getItem(LAST_VERSION_KEY);
+                if (lastVersion) {
+                    versionInput.value = lastVersion;
+                }
+                verConfirm(); // ロード時の自動判定を実行
+
             } catch (error) {
                 console.error('更新情報の取得に失敗しました:', error);
-                messagebox.innerHTML = '⚠️ 更新情報の取得に失敗しました。';
+                latestVersionDisplay.textContent = '取得失敗';
+                messagebox.innerHTML = '⚠️ 更新情報の取得に失敗しました。ネットワークを確認してください。';
                 messagebox.className = 'update-available fade';
             }
         }
 
         function verConfirm() {
-            const currentVersion = Number(versionInput.value);
-
-            if (latestVersion === 0) {
-                messagebox.innerHTML = "読み込み中...";
-                messagebox.className = 'loading-text';
-                return;
-            }
-
+            // メッセージボックスと入力枠のスタイルをリセット
             messagebox.className = '';
             newURL.innerHTML = '';
             newURL.href = '';
+            versionInput.classList.remove('input-error');
 
-            if (currentVersion === 0 || isNaN(currentVersion)) {
+            const currentVersionStr = versionInput.value.trim();
+
+            if (latestVersion === 0 || latestVersionDisplay.textContent === '取得失敗') {
+                messagebox.innerHTML = "バージョンを入力してEnterを押してください...";
+                messagebox.classList.add('fade');
+                return;
+            }
+
+            // バリデーションチェック (数字とピリオド以外の文字をチェック)
+            if (/[^0-9.]/.test(currentVersionStr)) {
+                messagebox.innerHTML = "❌ バージョンは数字とピリオドのみで入力してください。";
+                messagebox.classList.add('update-available', 'fade');
+                versionInput.classList.add('input-error');
+                return;
+            }
+            
+            // 入力が空の場合
+            if (!currentVersionStr) {
                 messagebox.innerHTML = "バージョンを入力してください...";
                 messagebox.classList.add('fade');
                 return;
             }
 
-            if (currentVersion < latestVersion) {
-                messagebox.innerHTML = `⚠️ バージョン ${latestVersion} がご利用可能です。`;
+            const comparisonResult = compareVersions(currentVersionStr, latestVersion);
+
+            if (comparisonResult === -1) {
+                // ℹ️ アイコンと青緑色の背景
+                messagebox.innerHTML = `ℹ️ バージョン ${latestVersion} がご利用可能です。`;
                 messagebox.classList.add('update-available', 'fade');
-                newURL.innerHTML = 'こちらから最新バージョンをダウンロード';
+                
+                // ダウンロードボタンを表示
+                newURL.innerHTML = '<span class="download-button">最新バージョンをダウンロード</span>';
                 newURL.href = updateURL;
-            } else {
+
+                saveVersion(currentVersionStr); 
+            } else { 
+                // 成功時のアニメーションを追加し、最新版であることを強調
                 messagebox.innerHTML = `✅ 最新バージョン (${latestVersion}) をご利用中です。`;
-                messagebox.classList.add('current-version', 'fade');
+                messagebox.classList.add('current-version', 'fade', 'success-effect');
+                
+                saveVersion(currentVersionStr); 
             }
         }
+        
+        // 起動時の処理
+        window.addEventListener('load', () => {
+            fetchUpdateInfo();
+            // ページロード時に自動フォーカス
+            versionInput.focus();
+        });
 
-        fetchUpdateInfo();
-
+        // イベントリスナー
         versionInput.addEventListener('change', verConfirm);
-        versionInput.addEventListener('keyup', verConfirm);
+        versionInput.addEventListener('keyup', verConfirm); 
+
+        // Enterキーでの判定を追加
+        versionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                verConfirm();
+            }
+        });
     </script>
 </body>
 </html>
