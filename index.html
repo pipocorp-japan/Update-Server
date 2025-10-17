@@ -171,9 +171,16 @@
         </div>
     </div>
     <div id="snackbar"></div>
-    <script>
-        const JSON_FILE_PATH = 'update_info.json';
 
+    <script id="update-data" type="application/json">
+    {
+      "version": 8.2,
+      "URL": "https://www.icloud.com/shortcuts/5ccf898a131a493aa18cd05fd93e79f6",
+      "releaseNotes": "このアップデートには重要なバグ修正が含まれています。必ずアップデートしてください。"
+    }
+    </script>
+
+    <script>
         const versionInput = document.getElementById("versionbox");
         const messagebox = document.getElementById("message");
         const newURL = document.getElementById("NewURL");
@@ -185,23 +192,12 @@
         let updateURL = '';
         let releaseNotes = '';
 
-        async function fetchUpdateInfo() {
-            try {
-                const response = await fetch(JSON_FILE_PATH);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-
-                latestVersion = data.version;
-                updateURL = data.URL;
-                releaseNotes = data.releaseNotes || '';
-
-                messagebox.className = '';
-                verConfirm(); 
-            } catch (error) {
-                console.error('更新情報の取得に失敗しました:', error);
-                messagebox.innerHTML = '<span class="material-icons">info</span>更新情報の取得に失敗しました';
-                messagebox.className = 'update-available fade';
-            }
+        function loadUpdateInfo() {
+            const data = JSON.parse(document.getElementById("update-data").textContent);
+            latestVersion = data.version;
+            updateURL = data.URL;
+            releaseNotes = data.releaseNotes || '';
+            verConfirm();
         }
 
         function showSnackbar(msg) {
@@ -244,7 +240,7 @@
             }
         }
 
-        fetchUpdateInfo();
+        window.addEventListener('DOMContentLoaded', loadUpdateInfo);
         versionInput.addEventListener('change', verConfirm);
         versionInput.addEventListener('keyup', verConfirm);
     </script>
