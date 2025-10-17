@@ -32,6 +32,7 @@
             padding: 10px;
             border-radius: 4px;
             min-height: 20px;
+            transition: all 0.3s ease;
         }
         #NewURL {
             display: block;
@@ -40,104 +41,128 @@
             text-decoration: none;
             font-weight: normal;
         }
+
         .update-available {
             color: #dc3545;
             background-color: #f8d7da;
         }
+
         .current-version {
             color: #28a745;
             background-color: #d4edda;
+        }
+
+        /* ✨ シャインアニメーション */
+        .loading-text {
+            position: relative;
+            display: inline-block;
+            color: #999;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            padding: 10px 12px;
+        }
+
+        .loading-text::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* フェードイン効果 */
+        .fade {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>更新サーバー確認</h1>
+        <h1>Update Server</h1>
         <label for="versionbox">ご利用のバージョンを入力してください:</label>
-        <input type="number" id="versionbox" placeholder="例: 1, 2, 3">
-        
-        <p id="message">情報を読み込み中...</p>
+        <input type="number" id="versionbox" placeholder="例: 7.1">
+
+        <p><span id="message" class="loading-text">読み込み中...</span></p>
         <p><a id="NewURL"></a></p>
     </div>
 
     <script>
-        // 定数
-        const JSON_FILE_PATH = 'update_info.json'; // JSONファイルのパス
+        const JSON_FILE_PATH = 'update_info.json';
 
-        // DOM要素の取得
         const versionInput = document.getElementById("versionbox");
         const messagebox = document.getElementById("message");
         const newURL = document.getElementById("NewURL");
 
-        // 最新バージョンとURLを格納する変数
         let latestVersion = 0;
         let updateURL = '';
 
-        /**
-         * JSONファイルから最新バージョン情報を取得する
-         */
         async function fetchUpdateInfo() {
             try {
                 const response = await fetch(JSON_FILE_PATH);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
+
                 latestVersion = data.version;
                 updateURL = data.URL;
 
-                // 情報を読み込んだら、バージョンチェックを実行
+                // 読み込み終了 → クラス削除
+                messagebox.className = '';
                 verConfirm(); 
             } catch (error) {
                 console.error('更新情報の取得に失敗しました:', error);
                 messagebox.innerHTML = '⚠️ 更新情報の取得に失敗しました。';
-                messagebox.classList.add('update-available');
+                messagebox.className = 'update-available fade';
             }
         }
 
-        /**
-         * 入力されたバージョンと最新バージョンを比較する
-         */
         function verConfirm() {
             const currentVersion = Number(versionInput.value);
-            
-            // 最新バージョン情報がまだ読み込まれていない場合はスキップ
+
             if (latestVersion === 0) {
-                messagebox.innerHTML = "情報を読み込み中...";
+                messagebox.innerHTML = "読み込み中...";
+                messagebox.className = 'loading-text';
                 return;
             }
 
-            // クラスを一旦リセット
             messagebox.className = '';
             newURL.innerHTML = '';
             newURL.href = '';
 
             if (currentVersion === 0 || isNaN(currentVersion)) {
                 messagebox.innerHTML = "バージョンを入力してください...";
+                messagebox.classList.add('fade');
                 return;
             }
 
             if (currentVersion < latestVersion) {
-                // 更新が必要な場合
                 messagebox.innerHTML = `⚠️ バージョン ${latestVersion} がご利用可能です。`;
-                messagebox.classList.add('update-available');
+                messagebox.classList.add('update-available', 'fade');
                 newURL.innerHTML = 'こちらから最新バージョンをダウンロード';
                 newURL.href = updateURL;
             } else {
-                // 最新バージョン、またはそれ以上の場合
                 messagebox.innerHTML = `✅ 最新バージョン (${latestVersion}) をご利用中です。`;
-                messagebox.classList.add('current-version');
+                messagebox.classList.add('current-version', 'fade');
             }
         }
 
-        // ページロード時にJSONファイルの読み込みを開始
         fetchUpdateInfo();
 
-        // イベントリスナーの設定
         versionInput.addEventListener('change', verConfirm);
         versionInput.addEventListener('keyup', verConfirm);
-
     </script>
 </body>
 </html>
